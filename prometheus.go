@@ -87,7 +87,7 @@ func (e *WRTExporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- interfaceBytesLabel
 }
 
-var timeAnt = time.Now().Unix()
+var timeIfAnt = make(map[string]int64)
 var bytesIfAnt = make(map[string]int64)
 
 // Collect retrieve all info from DD-WRT and returns the relevant metrics
@@ -258,14 +258,16 @@ func (e *WRTExporter) Collect(ch chan<- prometheus.Metric) {
 			intf, "rx",
 		)
 
+		unixNano := time.Now().UnixNano()
 		if _, ok := bytesIfAnt[intf+"tx"]; !ok {
 			bytesIfAnt[intf+"tx"] = intfstats.TXBytes
-			timeAnt = time.Now().Unix()
+			timeIfAnt[intf+"tx"] = unixNano
 		}
 		if _, ok := bytesIfAnt[intf+"rx"]; !ok {
 			bytesIfAnt[intf+"rx"] = intfstats.RXBytes
-			timeAnt = time.Now().Unix()
+			timeIfAnt[intf+"tx"] = unixNano
 		}
+
 		var bytesRateTx = float64(intfstats.TXBytes - bytesIfAnt[intf+"tx"])
 		var bytesRateRx = float64(intfstats.RXBytes - bytesIfAnt[intf+"rx"])
 		if bytesRateTx < 0 || bytesRateRx < 0 {
@@ -273,12 +275,15 @@ func (e *WRTExporter) Collect(ch chan<- prometheus.Metric) {
 			bytesRateRx = 0
 		}
 
-		if time.Now().Unix()-timeAnt > 0 {
-			bytesRateTx = bytesRateTx / float64(time.Now().Unix()-timeAnt)
-			bytesRateRx = bytesRateRx / float64(time.Now().Unix()-timeAnt)
+		if unixNano-timeIfAnt[intf+"tx"] > 0 {
+			bytesRateTx = bytesRateTx / float64(unixNano-timeIfAnt[intf+"tx"])
+			bytesRateRx = bytesRateRx / float64(unixNano-timeIfAnt[intf+"tx"])
 		}
+
 		bytesIfAnt[intf+"tx"] = intfstats.TXBytes
 		bytesIfAnt[intf+"rx"] = intfstats.RXBytes
+		timeIfAnt[intf+"tx"] = unixNano
+		timeIfAnt[intf+"rx"] = unixNano
 
 		ch <- prometheus.MustNewConstMetric(
 			interfaceRateBytesLabel,
