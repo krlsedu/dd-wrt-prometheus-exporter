@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -49,6 +50,12 @@ var (
 		[]string{"interface", "direction"},
 		nil,
 	)
+	interfaceRateBytesLabel = prometheus.NewDesc(
+		prometheus.BuildFQName("wrt", "interface", "bytes_rate"),
+		"Interface bytes rate",
+		[]string{"interface", "direction"},
+		nil,
+	)
 )
 
 // WRTExporter is the exporter for DD-WRT router using web APIs
@@ -67,7 +74,6 @@ func NewWRTExporter(endpoint string, username string, password string, interface
 		password:   password,
 		interfaces: interfaces,
 	}
-
 }
 
 // Describe populates the prometheus label section
@@ -80,6 +86,9 @@ func (e *WRTExporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- memoryLabel
 	ch <- interfaceBytesLabel
 }
+
+var timeAnt = time.Now().Unix()
+var bytesIfAnt = make(map[string]int64)
 
 // Collect retrieve all info from DD-WRT and returns the relevant metrics
 func (e *WRTExporter) Collect(ch chan<- prometheus.Metric) {
@@ -246,6 +255,42 @@ func (e *WRTExporter) Collect(ch chan<- prometheus.Metric) {
 			interfaceBytesLabel,
 			prometheus.CounterValue,
 			float64(intfstats.RXBytes),
+			intf, "rx",
+		)
+
+		if _, ok := bytesIfAnt[intf+"tx"]; !ok {
+			bytesIfAnt[intf+"tx"] = intfstats.TXBytes
+			timeAnt = time.Now().Unix()
+		}
+		if _, ok := bytesIfAnt[intf+"rx"]; !ok {
+			bytesIfAnt[intf+"rx"] = intfstats.RXBytes
+			timeAnt = time.Now().Unix()
+		}
+		var bytesRateTx = float64(intfstats.TXBytes - bytesIfAnt[intf+"tx"])
+		var bytesRateRx = float64(intfstats.RXBytes - bytesIfAnt[intf+"rx"])
+		if bytesRateTx < 0 || bytesRateRx < 0 {
+			bytesRateTx = 0
+			bytesRateRx = 0
+		}
+
+		if time.Now().Unix()-timeAnt > 0 {
+			bytesRateTx = bytesRateTx / float64(time.Now().Unix()-timeAnt)
+			bytesRateRx = bytesRateRx / float64(time.Now().Unix()-timeAnt)
+		}
+		bytesIfAnt[intf+"tx"] = intfstats.TXBytes
+		bytesIfAnt[intf+"rx"] = intfstats.RXBytes
+
+		ch <- prometheus.MustNewConstMetric(
+			interfaceRateBytesLabel,
+			prometheus.CounterValue,
+			bytesRateTx,
+			intf, "tx",
+		)
+
+		ch <- prometheus.MustNewConstMetric(
+			interfaceRateBytesLabel,
+			prometheus.CounterValue,
+			bytesRateRx,
 			intf, "rx",
 		)
 
