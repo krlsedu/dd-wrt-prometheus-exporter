@@ -20,7 +20,7 @@ func main() {
 	var routerURL = flag.String("url", "", "DD-WRT router URL (make sure to add the final slash)")
 	var username = flag.String("username", "", "Router user name")
 	var password = flag.String("password", "", "Router password")
-	var interfaces = flag.String("interfaces", "eth0,eth1,vlan0,br0", "Comma separated list of interface names for bandwidth scraping (eg. br0,vlan0,eth1)")
+	var interfaces = flag.String("interfaces", "", "Comma separated list of interface names for bandwidth scraping (eg. br0,vlan0,eth1)")
 
 	flag.Parse()
 
