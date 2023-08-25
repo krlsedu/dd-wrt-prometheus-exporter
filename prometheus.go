@@ -276,8 +276,8 @@ func (e *WRTExporter) Collect(ch chan<- prometheus.Metric) {
 		}
 
 		if unixNano-timeIfAnt[intf+"tx"] > 0 {
-			bytesRateTx = bytesRateTx / float64(unixNano-timeIfAnt[intf+"tx"])
-			bytesRateRx = bytesRateRx / float64(unixNano-timeIfAnt[intf+"tx"])
+			bytesRateTx = (bytesRateTx / float64(unixNano-timeIfAnt[intf+"tx"])) * 1000000000
+			bytesRateRx = bytesRateRx / float64(unixNano-timeIfAnt[intf+"tx"]) * 1000000000
 		}
 
 		bytesIfAnt[intf+"tx"] = intfstats.TXBytes
