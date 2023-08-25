@@ -31,7 +31,7 @@ func (t *TXPowerType) Scan(v string) {
 		return
 	}
 
-	intval, err := strconv.Atoi(strings.ReplaceAll(v, " mW", ""))
+	intval, err := strconv.Atoi(strings.ReplaceAll(strings.ReplaceAll(v, " mW", ""), " dBm", ""))
 	if err != nil {
 		log.Printf("Error converting TX power: %#v", err)
 	} else {
@@ -45,7 +45,7 @@ type WiFiRate float32
 
 // Scan is used to parse the formatted string from the DD-WRT router
 func (t *WiFiRate) Scan(v string) {
-	intval, err := strconv.ParseFloat(strings.ReplaceAll(strings.ReplaceAll(v, " Mbps", ""), "M", ""), 32)
+	intval, err := strconv.ParseFloat(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(v, " Mbps", ""), "M", ""), " bit/s", ""), 32)
 	if err != nil {
 		log.Printf("Error converting Wi-Fi rate: %#v", err)
 	} else {

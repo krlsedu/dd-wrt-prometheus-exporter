@@ -56,6 +56,12 @@ var (
 		[]string{"interface", "direction"},
 		nil,
 	)
+	interfaceIntervalTimeLabel = prometheus.NewDesc(
+		prometheus.BuildFQName("wrt", "interface", "interval_time"),
+		"Interface interval time",
+		[]string{"interface"},
+		nil,
+	)
 )
 
 // WRTExporter is the exporter for DD-WRT router using web APIs
@@ -275,15 +281,25 @@ func (e *WRTExporter) Collect(ch chan<- prometheus.Metric) {
 			bytesRateRx = 0
 		}
 
-		if unixNano-timeIfAnt[intf+"tx"] > 0 {
-			bytesRateTx = (bytesRateTx / float64(unixNano-timeIfAnt[intf+"tx"])) * 1000000000
-			bytesRateRx = (bytesRateRx / float64(unixNano-timeIfAnt[intf+"tx"])) * 1000000000
+		intervalTime := unixNano - timeIfAnt[intf+"tx"]
+		if intervalTime > 0 {
+			bytesRateTx = (bytesRateTx / float64(intervalTime)) * 1000000000
+			bytesRateRx = (bytesRateRx / float64(intervalTime)) * 1000000000
 		}
 
 		bytesIfAnt[intf+"tx"] = intfstats.TXBytes
 		bytesIfAnt[intf+"rx"] = intfstats.RXBytes
 		timeIfAnt[intf+"tx"] = unixNano
 		timeIfAnt[intf+"rx"] = unixNano
+
+		seconds := float64(intervalTime) / 1000000000
+
+		ch <- prometheus.MustNewConstMetric(
+			interfaceIntervalTimeLabel,
+			prometheus.CounterValue,
+			seconds,
+			intf,
+		)
 
 		ch <- prometheus.MustNewConstMetric(
 			interfaceRateBytesLabel,
