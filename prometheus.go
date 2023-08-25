@@ -287,14 +287,14 @@ func (e *WRTExporter) Collect(ch chan<- prometheus.Metric) {
 
 		ch <- prometheus.MustNewConstMetric(
 			interfaceRateBytesLabel,
-			prometheus.CounterValue,
+			prometheus.GaugeValue,
 			bytesRateTx,
 			intf, "tx",
 		)
 
 		ch <- prometheus.MustNewConstMetric(
 			interfaceRateBytesLabel,
-			prometheus.CounterValue,
+			prometheus.GaugeValue,
 			bytesRateRx,
 			intf, "rx",
 		)
