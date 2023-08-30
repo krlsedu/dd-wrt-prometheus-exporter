@@ -44,8 +44,14 @@ var (
 		[]string{"type", "status"},
 		nil,
 	)
-	interfaceBytesLabel = prometheus.NewDesc(
+	interfaceBytesCountLabel = prometheus.NewDesc(
 		prometheus.BuildFQName("wrt", "interface", "bytes_count"),
+		"Interface bytes count",
+		[]string{"interface", "direction"},
+		nil,
+	)
+	interfaceBytesLabel = prometheus.NewDesc(
+		prometheus.BuildFQName("wrt", "interface", "bytes_total"),
 		"Interface bytes count",
 		[]string{"interface", "direction"},
 		nil,
@@ -281,6 +287,9 @@ func (e *WRTExporter) Collect(ch chan<- prometheus.Metric) {
 			bytesRateRx = 0
 		}
 
+		var bytesCountTx = bytesRateTx
+		var bytesCountRx = bytesRateRx
+
 		intervalTime := unixNano - timeIfAnt[intf+"tx"]
 		if intervalTime > 0 {
 			bytesRateTx = (bytesRateTx / float64(intervalTime)) * 1000000000
@@ -312,6 +321,20 @@ func (e *WRTExporter) Collect(ch chan<- prometheus.Metric) {
 			interfaceRateBytesLabel,
 			prometheus.GaugeValue,
 			bytesRateRx,
+			intf, "rx",
+		)
+
+		ch <- prometheus.MustNewConstMetric(
+			interfaceBytesCountLabel,
+			prometheus.CounterValue,
+			bytesCountTx,
+			intf, "tx",
+		)
+
+		ch <- prometheus.MustNewConstMetric(
+			interfaceBytesCountLabel,
+			prometheus.CounterValue,
+			bytesCountRx,
 			intf, "rx",
 		)
 
